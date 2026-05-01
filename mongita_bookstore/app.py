@@ -115,25 +115,91 @@ def book_detail():
 # ------------------------------------------
 # ADD BOOK
 # ------------------------------------------
-@app.route("/add-book", methods=["GET", "POST"])
+@app.route("/add-book", methods=["GET"])
+@app.route("/create", methods=["GET"])
 def add_book():
     categories = get_categories()
+    return render_template("create.html", categories=categories)
 
-    if request.method == "POST":
-        title = request.form.get("title")
-        author = request.form.get("author")
-        isbn = request.form.get("isbn")
-        price = request.form.get("price", type=float)
-        image = request.form.get("image")
-        category_id = request.form.get("categoryId", type=int)
+@app.route("/create_post", methods=["POST"])
+def create_post():
+    categories = get_categories()
+    title = request.form.get("title")
+    author = request.form.get("author")
+    isbn = request.form.get("isbn")
+    price = request.form.get("price", type=float)
+    image = request.form.get("image")
+    category_id = request.form.get("categoryId", type=int)
+    read_now = request.form.get("readNow", type=int)
 
-        selected_category = next(
-            (c for c in categories if c["categoryId"] == category_id),
-            None
-        )
+    selected_category = next(
+        (c for c in categories if c["categoryId"] == category_id),
+        None
+    )
 
-        new_book = {
-            "bookId": get_next_book_id(),
+    new_book = {
+        "bookId": get_next_book_id(),
+        "categoryId": category_id,
+        "categoryName": selected_category["categoryName"] if selected_category else "",
+        "title": title,
+        "author": author,
+        "isbn": isbn,
+        "price": price,
+        "image": image,
+        "readNow": read_now if read_now is not None else 0
+    }
+
+    books_col.insert_one(new_book)
+
+    return redirect(url_for("read_books"))
+
+
+# ------------------------------------------
+# READ BOOKS
+# ------------------------------------------
+@app.route("/read", methods=["GET"])
+def read_books():
+    categories = get_categories()
+    books = sorted(list(books_col.find()), key=lambda b: b["title"])
+    return render_template("read.html", categories=categories, books=books)
+
+
+# ------------------------------------------
+# EDIT BOOK
+# ------------------------------------------
+@app.route("/edit", methods=["GET"])
+@app.route("/edit/<int:book_id>", methods=["GET"])
+def edit_book(book_id=None):
+    categories = get_categories()
+    if book_id is None:
+        book_id = request.args.get("bookId", type=int)
+
+    book = books_col.find_one({"bookId": book_id})
+
+    if not book:
+        return render_template("error.html", error="Book not found"), 404
+
+    return render_template("edit.html", categories=categories, book=book)
+
+@app.route("/edit-post/<int:book_id>", methods=["POST"])
+def edit_post(book_id=None):
+    categories = get_categories()
+    title = request.form.get("title")
+    author = request.form.get("author")
+    isbn = request.form.get("isbn")
+    price = request.form.get("price", type=float)
+    image = request.form.get("image")
+    category_id = request.form.get("categoryId", type=int)
+    read_now = request.form.get("readNow", type=int)
+
+    selected_category = next(
+        (c for c in categories if c["categoryId"] == category_id),
+        None
+    )
+
+    books_col.update_one(
+        {"bookId": book_id},
+        {"$set": {
             "categoryId": category_id,
             "categoryName": selected_category["categoryName"] if selected_category else "",
             "title": title,
@@ -141,14 +207,23 @@ def add_book():
             "isbn": isbn,
             "price": price,
             "image": image,
-            "readNow": 0
-        }
+            "readNow": read_now
+        }}
+    )
 
-        books_col.insert_one(new_book)
+    return redirect(url_for("read_books"))
 
-        return redirect(url_for("home"))
+# ------------------------------------------
+# DELETE BOOK
+# ------------------------------------------
+@app.route("/delete", methods=["GET"])
+@app.route("/delete/<int:book_id>", methods=["GET"])
+def delete_book(book_id=None):
+    if book_id is None:
+        book_id = request.args.get("bookId", type=int)
 
-    return render_template("add_book.html", categories=categories)
+    books_col.delete_one({"bookId": book_id})
+    return redirect(url_for("read_books"))
 
 
 # ------------------------------------------

@@ -1,0 +1,22 @@
+[
+  {
+    "_id": "69e4f167ff457118098334ff",
+    "categoryId": 1,
+    "categoryName": "Biographies"
+  },
+  {
+    "_id": "69e4f167ff45711809833500",
+    "categoryId": 2,
+    "categoryName": "Learn to Play"
+  },
+  {
+    "_id": "69e4f167ff45711809833501",
+    "categoryId": 3,
+    "categoryName": "Music Theory"
+  },
+  {
+    "_id": "69e4f167ff45711809833502",
+    "categoryId": 4,
+    "categoryName": "Scores and Charts"
+  }
+]
